@@ -1,30 +1,46 @@
-import { Command } from 'commander';
-import http from 'http';
-import fs from 'fs';
-import path from 'path';
+import http from "http";
+import fs from "fs";
+import path from "path";
+import superagent from "superagent";
 
-const program = new Command();
+const PORT = 3000;
+const CACHE_DIR = path.join(process.cwd(), "cache");
 
-program
-  .requiredOption('-h, --host <address>', 'server host')
-  .requiredOption('-p, --port <number>', 'server port')
-  .requiredOption('-c, --cache <dir>', 'cache directory');
-
-program.parse(process.argv);
-const options = program.opts();
-
-// --- Перевірка і створення директорії кешу ---
-if (!fs.existsSync(options.cache)) {
-  fs.mkdirSync(options.cache, { recursive: true });
-  console.log(`Cache directory created at ${options.cache}`);
+// створюємо папку cache, якщо її нема
+if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR);
 }
 
-// --- Створюємо сервер ---
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Hello, server is running!\n');
+const server = http.createServer(async (req, res) => {
+    const statusCode = req.url.slice(1); // /200 → 200
+    const filePath = path.join(CACHE_DIR, `${statusCode}.jpg`);
+
+    // ✅ Перевіряємо чи в кеші є картинка
+    if (fs.existsSync(filePath)) {
+        console.log(`✅ Cache hit: ${statusCode}`);
+        res.writeHead(200, { "Content-Type": "image/jpeg" });
+        fs.createReadStream(filePath).pipe(res);
+        return;
+    }
+
+    console.log(`⛔ Cache miss: ${statusCode}, fetching from http.cat...`);
+
+    try {
+        // ✅ Отримуємо картинку з http.cat
+        const response = await superagent.get(`https://http.cat/${statusCode}`);
+
+        // ✅ Зберігаємо файл у кеш
+        fs.writeFileSync(filePath, response.body);
+
+        res.writeHead(200, { "Content-Type": "image/jpeg" });
+        res.end(response.body);
+    } catch (err) {
+        console.log(`❌ Error fetching https://http.cat/${statusCode}`);
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.end("404 Not Found");
+    }
 });
 
-server.listen(parseInt(options.port), options.host, () => {
-  console.log(`Server running at http://${options.host}:${options.port}/`);
+server.listen(PORT, () => {
+    console.log(`Server running at http://127.0.0.1:${PORT}/`);
 });
