@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+"scripts": {
+  "start": "node server.js",
+  "dev": "nodemon --exec \"node index.js -h 127.0.0.1 -p 3000 -c ./cache\""
+},
   "dependencies": {
     "commander": "^14.0.2",
     "superagent": "^10.2.3"
