@@ -1,0 +1,11 @@
+# PUT — збереження картинки
+curl -X PUT http://localhost:3000/200 --data-binary "@image.jpg"
+
+# GET — отримання збереженої картинки
+curl http://localhost:3000/200 --output result.jpg
+
+# DELETE — видалення картинки
+curl -X DELETE http://localhost:3000/200
+
+# GET — спроба отримати видалений файл (має повернути 404)
+curl http://localhost:3000/200
